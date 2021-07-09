@@ -65,7 +65,11 @@ int main(int argc, char const *argv[])
 			p = strtok (NULL, " ");
 		}
 		
-		printf("%s %s %s\n",cursurVals[0],cursurVals[1], cursurVals[2]);
+		float deltaX = atof(cursurVals[0]);
+		float deltaY = atof(cursurVals[1]);
+		int clicked = atoi(cursurVals[2]);
+		
+		printf("%f %f %d\n",deltaX,deltaY,clicked);
 		
 		memset(buffer, 0, sizeof(buffer));
 		//buffer[0] = "\0";
