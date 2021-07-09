@@ -4,9 +4,11 @@
 #include <stdlib.h>
 #include <netinet/in.h>
 #include <string.h>
+#include <math.h>
 #define PORT 8080
 int main(int argc, char const *argv[])
 {
+	printf("IM ALIVE!!!");
 	int server_fd, new_socket, valread;
 	struct sockaddr_in address;
 	int opt = 1;
@@ -53,7 +55,7 @@ int main(int argc, char const *argv[])
 
 	while(1) {
 		valread = read( new_socket , buffer, 1024);
-		//printf("%s\n",buffer );
+		printf("%s\n",buffer);
 		
 		//find values!!!
 		int i = 0;
@@ -69,7 +71,19 @@ int main(int argc, char const *argv[])
 		float deltaY = atof(cursurVals[1]);
 		int clicked = atoi(cursurVals[2]);
 		
-		printf("%f %f %d\n",deltaX,deltaY,clicked);
+		if(deltaX != 0 && deltaY != 0) {
+			float sensitivity = 4000;
+			int moveX = (int) (deltaX*sensitivity);
+			int moveY = (int) (deltaY*sensitivity);
+			//printf("%d %d %d\n",moveX,moveY,clicked);
+			//printf("%s\n","hello");
+
+			char * command = (char *) malloc(1024 * sizeof(char));
+			sprintf(command, "xdotool mousemove_relative -- %d %d", moveX, moveY);
+			printf("%s\n", command);
+			int sys = system(command);
+		}
+		
 		
 		memset(buffer, 0, sizeof(buffer));
 		//buffer[0] = "\0";
