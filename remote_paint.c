@@ -19,7 +19,7 @@
 #define COLOR_BLUE  0xFF0000FF
 
 #define PORT 8080
-#define MAX_DELTA 0.0001f
+#define MAX_DELTA 0.001f
 
 bool curr_clicked = false;
 
@@ -36,7 +36,6 @@ typedef struct {
 
 void click_sig(int sig) 
 {
-	printf("click_sig haapened!\n");
 	curr_clicked = !curr_clicked;
 	printf("curr_clicked changed to : %d\n", curr_clicked);
 	signal(SIGUSR1, click_sig);
@@ -111,7 +110,7 @@ int main(int argc, char* argv[])
 	if (parentId != 0) 
 	{
 		bool last_click = curr_clicked;
-		printf("CHILD ALIVE!!!\n");
+		printf("PARENT ALIVE!!!\n");
 		int server_fd, new_socket, valread;
 		struct sockaddr_in address;
 		int opt = 1;
@@ -173,7 +172,7 @@ int main(int argc, char* argv[])
 			float deltaY = atof(cursurVals[1]);
 			int clicked = atoi(cursurVals[2]);
 
-			/*
+			
 			if(deltaX > MAX_DELTA)
 				deltaX = MAX_DELTA;
 
@@ -186,7 +185,7 @@ int main(int argc, char* argv[])
 			if(deltaY < - MAX_DELTA)
 				deltaY = - MAX_DELTA;	
 
-			*/	
+				
 
 			if(deltaX != 0 && deltaY != 0) {
 				float sensitivity = 4000;
@@ -214,12 +213,12 @@ int main(int argc, char* argv[])
 
 	
 		return 0;
-	} // FINISH OF CHILD MOVE CURSOR PROCESS
+	} // FINISH OF PARENT MOVE CURSOR PROCESS
 	else
 	{
-		printf("PARENT ALIVE!!!\n");
+		printf("CHILD ALIVE!!!\n");
 		signal(SIGUSR1, click_sig);
-		printf("SIGUSR1 hhas registered!\n");
+		printf("SIGUSR1 has registered!\n");
 
 		int xMouse, yMouse;
 		draw_state* m = draw_init();
@@ -302,7 +301,6 @@ int main(int argc, char* argv[])
 			}
 
 			if(curr_clicked) {
-				printf("curr_clicked is true in this iteration!\n");
 				SDL_GetMouseState(&xMouse,&yMouse);
 				if (xMouse < 32 && yMouse < 32) {
 					m->color = COLOR_BLUE;
@@ -321,5 +319,5 @@ int main(int argc, char* argv[])
 		}
 
 		return 0;
-	} // FINISH OF PARENT DRAW PANEL PROCESS
+	} // FINISH OF CHILD DRAW PANEL PROCESS
 }
