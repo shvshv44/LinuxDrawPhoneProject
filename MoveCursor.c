@@ -15,6 +15,7 @@ int main(int argc, char const *argv[])
 	int addrlen = sizeof(address);
 	char buffer[1024] = {0};
 	char *hello = "Hello from server";
+	FILE *fptr;
 	
 	// Creating socket file descriptor
 	if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0)
@@ -53,6 +54,8 @@ int main(int argc, char const *argv[])
 		exit(EXIT_FAILURE);
 	}
 
+ 	fptr = fopen("locationLogs.txt","w");
+
 	while(1) {
 		valread = read( new_socket , buffer, 1024);
 		printf("%s\n",buffer);
@@ -77,6 +80,7 @@ int main(int argc, char const *argv[])
 			int moveY = (int) (deltaY*sensitivity);
 			//printf("%d %d %d\n",moveX,moveY,clicked);
 			//printf("%s\n","hello");
+			fprintf(fptr,"%d %d %d\n",moveX,moveY,clicked);
 
 			char * command = (char *) malloc(1024 * sizeof(char));
 			sprintf(command, "xdotool mousemove_relative -- %d %d", moveX, moveY);
