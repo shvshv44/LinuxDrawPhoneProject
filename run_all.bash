@@ -1,4 +1,5 @@
 #!/bin/bash
 
-./../runs/move_cursor &
-./../runs/draw &
+echo "" > ../logs/last_run.txt
+./../runs/remote_paint >> ../logs/last_run.txt  &
+
