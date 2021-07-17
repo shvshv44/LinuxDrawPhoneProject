@@ -5,6 +5,8 @@
 #include <netinet/in.h>
 #include <string.h>
 #include <math.h>
+#include <stdbool.h>
+#include <signal.h>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 
@@ -17,6 +19,9 @@
 #define COLOR_BLUE  0xFF0000FF
 
 #define PORT 8080
+#define MAX_DELTA 0.0001f
+
+bool curr_clicked = false;
 
 typedef struct {
 	SDL_Window* win;
@@ -28,6 +33,14 @@ typedef struct {
 	int x;
 	int y;
 } draw_state;
+
+void click_sig(int sig) 
+{
+	printf("click_sig haapened!\n");
+	curr_clicked = !curr_clicked;
+	printf("curr_clicked changed to : %d\n", curr_clicked);
+	signal(SIGUSR1, click_sig);
+}
 
 void draw_exit(int code)
 {
@@ -78,7 +91,7 @@ draw_state* draw_init(void)
 {
 	draw_state* m = malloc(sizeof(*m));
 	if (m == NULL) {
-		draw_error("Failed to initialize state!");
+		draw_error("Failed to initialize state!\n");
 	}
 
 	m->color = COLOR_BLACK;
@@ -93,15 +106,17 @@ draw_state* draw_init(void)
 
 int main(int argc, char* argv[])
 {
-	if (fork() == 0) 
+	printf("STARTS ALL!!!!\n");
+	int parentId = fork();
+	if (parentId != 0) 
 	{
-		printf("IM ALIVE!!!");
+		bool last_click = curr_clicked;
+		printf("CHILD ALIVE!!!\n");
 		int server_fd, new_socket, valread;
 		struct sockaddr_in address;
 		int opt = 1;
 		int addrlen = sizeof(address);
 		char buffer[1024] = {0};
-		char *hello = "Hello from server";
 		FILE *fptr;
 	
 		// Creating socket file descriptor
@@ -157,15 +172,34 @@ int main(int argc, char* argv[])
 			float deltaX = atof(cursurVals[0]);
 			float deltaY = atof(cursurVals[1]);
 			int clicked = atoi(cursurVals[2]);
-		
+
+			/*
+			if(deltaX > MAX_DELTA)
+				deltaX = MAX_DELTA;
+
+			if(deltaY > MAX_DELTA)
+				deltaY = MAX_DELTA;
+
+			if(deltaX < - MAX_DELTA)
+				deltaX = - MAX_DELTA;
+
+			if(deltaY < - MAX_DELTA)
+				deltaY = - MAX_DELTA;	
+
+			*/	
+
 			if(deltaX != 0 && deltaY != 0) {
 				float sensitivity = 4000;
 				int moveX = (int) (deltaX*sensitivity);
 				int moveY = (int) (deltaY*sensitivity);
-				//printf("%d %d %d\n",moveX,moveY,clicked);
-				//printf("%s\n","hello");
 				fprintf(fptr,"%d %d %d\n",moveX,moveY,clicked);
 
+				// Send signal for click event
+				if(last_click != clicked) {
+					kill(parentId, SIGUSR1);
+				}
+
+				//Move The Cursor On Screen
 				char * command = (char *) malloc(1024 * sizeof(char));
 				sprintf(command, "xdotool mousemove_relative -- %d %d", moveX, moveY);
 				printf("%s\n", command);
@@ -175,6 +209,7 @@ int main(int argc, char* argv[])
 		
 			memset(buffer, 0, sizeof(buffer));
 			//buffer[0] = "\0";
+			last_click = clicked;
 		}
 
 	
@@ -182,16 +217,20 @@ int main(int argc, char* argv[])
 	} // FINISH OF CHILD MOVE CURSOR PROCESS
 	else
 	{
+		printf("PARENT ALIVE!!!\n");
+		signal(SIGUSR1, click_sig);
+		printf("SIGUSR1 hhas registered!\n");
+
 		int xMouse, yMouse;
 		draw_state* m = draw_init();
 
 		if (SDL_Init(SDL_INIT_VIDEO) < 0) {
-			draw_error("Failed to initialize SDL!");
+			draw_error("Failed to initialize SDL!\n");
 		}
 
 		m->win = SDL_CreateWindow("draw something", 0, 0, m->win_width, m->win_height, SDL_WINDOW_SHOWN);
 		if (m->win == NULL) {
-			draw_error("Failed to initialize SDL window!");
+			draw_error("Failed to initialize SDL window!\n");
 		}
 
 		m->screen = SDL_GetWindowSurface(m->win);
@@ -261,6 +300,23 @@ int main(int argc, char* argv[])
 					break;
 				}
 			}
+
+			if(curr_clicked) {
+				printf("curr_clicked is true in this iteration!\n");
+				SDL_GetMouseState(&xMouse,&yMouse);
+				if (xMouse < 32 && yMouse < 32) {
+					m->color = COLOR_BLUE;
+				} else if (xMouse < 64 && yMouse < 32) {
+					m->color = COLOR_WHITE;
+				} else if (xMouse < 96 && yMouse < 32) {
+					m->color = COLOR_RED;
+				} else if (xMouse < 128 && yMouse < 32) {
+					m->color = COLOR_GREEN;
+				} else {
+					draw_pencil(m, xMouse, yMouse);
+				}
+			}
+
 			draw_render(m);
 		}
 
