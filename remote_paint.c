@@ -11,6 +11,7 @@
 #include <SDL2/SDL_image.h>
 
 #define TOOL_PENCIL 0
+#define COLOR_SIZE 32
 
 #define COLOR_BLACK 0xFF000000
 #define COLOR_WHITE 0xFFFFFFFF
@@ -221,6 +222,7 @@ int main(int argc, char* argv[])
 		printf("SIGUSR1 has registered!\n");
 
 		int xMouse, yMouse;
+		int xMouseLast = 0, yMouseLast = 0; // For lines...
 		draw_state* m = draw_init();
 
 		if (SDL_Init(SDL_INIT_VIDEO) < 0) {
@@ -237,6 +239,7 @@ int main(int argc, char* argv[])
 
 		/* so we don't start with a black m->screen */
 		draw_render(m);
+
 		while (1) {
 			SDL_Event e;
 		
@@ -265,13 +268,13 @@ int main(int argc, char* argv[])
 				case SDL_MOUSEBUTTONDOWN:
 					if (e.button.button == SDL_BUTTON_LEFT) {
 						SDL_GetMouseState(&xMouse,&yMouse);
-						if (xMouse < 32 && yMouse < 32) {
+						if (xMouse < COLOR_SIZE && yMouse < COLOR_SIZE) {
 							m->color = COLOR_BLUE;
-						} else if (xMouse < 64 && yMouse < 32) {
+						} else if (xMouse < (COLOR_SIZE * 2) && yMouse < COLOR_SIZE) {
 							m->color = COLOR_WHITE;
-						} else if (xMouse < 96 && yMouse < 32) {
+						} else if (xMouse < (COLOR_SIZE * 3) && yMouse < COLOR_SIZE) {
 							m->color = COLOR_RED;
-						} else if (xMouse < 128 && yMouse < 32) {
+						} else if (xMouse < (COLOR_SIZE * 4) && yMouse < COLOR_SIZE) {
 							m->color = COLOR_GREEN;
 						} else {
 							draw_pencil(m, e.button.x, e.button.y);
@@ -299,9 +302,9 @@ int main(int argc, char* argv[])
 					break;
 				}
 			}
-
+			
+			SDL_GetMouseState(&xMouse,&yMouse);
 			if(curr_clicked) {
-				SDL_GetMouseState(&xMouse,&yMouse);
 				if (xMouse < 32 && yMouse < 32) {
 					m->color = COLOR_BLUE;
 				} else if (xMouse < 64 && yMouse < 32) {
@@ -314,7 +317,12 @@ int main(int argc, char* argv[])
 					draw_pencil(m, xMouse, yMouse);
 				}
 			}
+			
+			// For lines
+			xMouseLast = xMouse;
+			yMouseLast = yMouse;
 
+			// Render!
 			draw_render(m);
 		}
 
