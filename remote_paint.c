@@ -9,6 +9,7 @@
 #include <signal.h>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
+#include <sys/mman.h>
 
 #define TOOL_PENCIL 0
 #define COLOR_SIZE 32
@@ -104,117 +105,131 @@ draw_state* draw_init(void)
 	return m;
 }
 
+void * create_shared_memory(size_t size) 
+{
+	int protection = PROT_READ | PROT_WRITE;
+	int visability = MAP_SHARED | MAP_ANONYMOUS;
+	return mmap(NULL, size, protection, visability, -1, 0);
+}
+
 int main(int argc, char* argv[])
 {
 	printf("STARTS ALL!!!!\n");
-	int parentId = fork();
-	if (parentId != 0) 
+	void * smemory = create_shared_memory(200);
+	int childId = fork();
+	if (childId != 0) 
 	{
-		bool last_click = curr_clicked;
-		printf("PARENT ALIVE!!!\n");
-		int server_fd, new_socket, valread;
-		struct sockaddr_in address;
-		int opt = 1;
-		int addrlen = sizeof(address);
-		char buffer[1024] = {0};
-		FILE *fptr;
+		if(fork() != 0) {
+			bool last_click = curr_clicked;
+			printf("PARENT ALIVE!!!\n");
+			int server_fd, new_socket, valread;
+			struct sockaddr_in address;
+			int opt = 1;
+			int addrlen = sizeof(address);
+			char buffer[1024] = {0};
+			FILE *fptr;
 	
-		// Creating socket file descriptor
-		if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0)
-		{
-			perror("socket failed");
-			exit(EXIT_FAILURE);
-		}
-	
-		// Forcefully attaching socket to the port 8080
-		if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt)))
-		{
-			perror("setsockopt");
-			exit(EXIT_FAILURE);
-		}
-		address.sin_family = AF_INET;
-		address.sin_addr.s_addr = INADDR_ANY;
-		address.sin_port = htons( PORT );
-		
-		// Forcefully attaching socket to the port 8080
-		if (bind(server_fd, (struct sockaddr *)&address, sizeof(address))<0)
-		{
-			perror("bind failed");
-			exit(EXIT_FAILURE);
-		}
-		if (listen(server_fd, 3) < 0)
-		{
-			perror("listen");
-			exit(EXIT_FAILURE);
-		}
-		if ((new_socket = accept(server_fd, (struct sockaddr *)&address, (socklen_t*)&addrlen))<0)
-		{
-			perror("accept");
-			exit(EXIT_FAILURE);
-		}
-
- 		fptr = fopen("../logs/locationLogs.txt","w");
-
-		while(1) {
-			valread = read( new_socket , buffer, 1024);
-			printf("%s\n",buffer);
-		
-			//find values!!!
-			int i = 0;
-    			char *p = strtok (buffer, " ");
-			char *cursurVals[12];
-			while (p != NULL)
+			// Creating socket file descriptor
+			if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0)
 			{
-				cursurVals[i++] = p;
-				p = strtok (NULL, " ");
+				perror("socket failed");
+				exit(EXIT_FAILURE);
 			}
+	
+			// Forcefully attaching socket to the port 8080
+			if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt)))
+			{
+				perror("setsockopt");
+				exit(EXIT_FAILURE);
+			}
+			address.sin_family = AF_INET;
+			address.sin_addr.s_addr = INADDR_ANY;
+			address.sin_port = htons( PORT );
 		
-			float deltaX = atof(cursurVals[0]);
-			float deltaY = atof(cursurVals[1]);
-			int clicked = atoi(cursurVals[2]);
+			// Forcefully attaching socket to the port 8080
+			if (bind(server_fd, (struct sockaddr *)&address, sizeof(address))<0)
+			{
+				perror("bind failed");
+				exit(EXIT_FAILURE);
+			}
+			if (listen(server_fd, 3) < 0)
+			{
+				perror("listen");
+				exit(EXIT_FAILURE);
+			}
+			if ((new_socket = accept(server_fd, (struct sockaddr *)&address, (socklen_t*)&addrlen))<0)
+			{
+				perror("accept");
+				exit(EXIT_FAILURE);
+			}
 
+ 			fptr = fopen("../logs/locationLogs.txt","w");
+
+			while(1) {
+				valread = read( new_socket , buffer, 1024);
+				printf("%s\n",buffer);
+		
+				//find values!!!
+				int i = 0;
+	    			char *p = strtok (buffer, " ");
+				char *cursurVals[12];
+				while (p != NULL)
+				{
+					cursurVals[i++] = p;
+					p = strtok (NULL, " ");
+				}
 			
-			if(deltaX > MAX_DELTA)
-				deltaX = MAX_DELTA;
-
-			if(deltaY > MAX_DELTA)
-				deltaY = MAX_DELTA;
-
-			if(deltaX < - MAX_DELTA)
-				deltaX = - MAX_DELTA;
-
-			if(deltaY < - MAX_DELTA)
-				deltaY = - MAX_DELTA;	
+				float deltaX = atof(cursurVals[0]);
+				float deltaY = atof(cursurVals[1]);
+				int clicked = atoi(cursurVals[2]);
 
 				
+				if(deltaX > MAX_DELTA)
+					deltaX = MAX_DELTA;
 
-			if(deltaX != 0 && deltaY != 0) {
-				float sensitivity = 4000;
-				int moveX = (int) (deltaX*sensitivity);
-				int moveY = (int) (deltaY*sensitivity);
-				fprintf(fptr,"%d %d %d\n",moveX,moveY,clicked);
+				if(deltaY > MAX_DELTA)
+					deltaY = MAX_DELTA;
 
-				// Send signal for click event
-				if(last_click != clicked) {
-					kill(parentId, SIGUSR1);
+				if(deltaX < - MAX_DELTA)
+					deltaX = - MAX_DELTA;
+
+				if(deltaY < - MAX_DELTA)
+					deltaY = - MAX_DELTA;	
+
+					
+
+				if(deltaX != 0 && deltaY != 0) {
+					float sensitivity = 4000;
+					int moveX = (int) (deltaX*sensitivity);
+					int moveY = (int) (deltaY*sensitivity);
+					fprintf(fptr,"%d %d %d\n",moveX,moveY,clicked);
+
+					// Send signal for click event
+					if(last_click != clicked) {
+						kill(childId, SIGUSR1);
+					}
+
+					//Move The Cursor On Screen
+					char * command = (char *) malloc(1024 * sizeof(char));
+					sprintf(command, "xdotool mousemove_relative -- %d %d", moveX, moveY);
+					printf("%s\n", command);
+					int sys = system(command);
 				}
-
-				//Move The Cursor On Screen
-				char * command = (char *) malloc(1024 * sizeof(char));
-				sprintf(command, "xdotool mousemove_relative -- %d %d", moveX, moveY);
-				printf("%s\n", command);
-				int sys = system(command);
+			
+			
+				memset(buffer, 0, sizeof(buffer));
+				//buffer[0] = "\0";
+				last_click = clicked;
 			}
-		
-		
-			memset(buffer, 0, sizeof(buffer));
-			//buffer[0] = "\0";
-			last_click = clicked;
-		}
 
-	
-		return 0;
-	} // FINISH OF PARENT MOVE CURSOR PROCESS
+		
+			return 0;
+		} // FINISH OF PARENT MOVE CURSOR PROCESS
+		else 
+		{
+			//TODO: use mmap to write user_analitics.log and say which color choosed in what order...
+		} // FINISH OF SECOND CHILD STATISTICS PROCESS
+	} 
 	else
 	{
 		printf("CHILD ALIVE!!!\n");
@@ -306,14 +321,34 @@ int main(int argc, char* argv[])
 			SDL_GetMouseState(&xMouse,&yMouse);
 			if(curr_clicked) {
 				if (xMouse < 32 && yMouse < 32) {
-					m->color = COLOR_BLUE;
-				} else if (xMouse < 64 && yMouse < 32) {
-					m->color = COLOR_WHITE;
-				} else if (xMouse < 96 && yMouse < 32) {
-					m->color = COLOR_RED;
-				} else if (xMouse < 128 && yMouse < 32) {
-					m->color = COLOR_GREEN;
-				} else {
+					if(m->color != COLOR_BLUE)
+					{
+						m->color = COLOR_BLUE;
+						//TODO: add mmap
+					}
+				} 
+				else if (xMouse < 64 && yMouse < 32) {
+					if(m->color != COLOR_WHITE) 
+					{
+						m->color = COLOR_WHITE;
+						//TODO: add mmap
+					}
+				} 
+				else if (xMouse < 96 && yMouse < 32) {
+					if(m->color != COLOR_RED)
+					{
+						m->color = COLOR_RED;
+						//TODO: add mmap
+					}
+				} 
+				else if (xMouse < 128 && yMouse < 32) {
+					if(m->color != COLOR_GREEN) 
+					{
+						m->color = COLOR_GREEN;
+						//TODO: add mmap
+					}
+				} 
+				else {
 					draw_pencil(m, xMouse, yMouse);
 				}
 			}
