@@ -115,7 +115,13 @@ void * create_shared_memory(size_t size)
 int main(int argc, char* argv[])
 {
 	printf("STARTS ALL!!!!\n");
-	void * smemory = create_shared_memory(200);
+	//void * smemory = create_shared_memory(200);
+	int * smemory = (int *) create_shared_memory(sizeof(int) * 4);
+	smemory[0] = 0;
+	smemory[1] = 0;
+	smemory[2] = 0;
+	smemory[3] = 0;
+
 	int childId = fork();
 	if (childId != 0) 
 	{
@@ -228,6 +234,26 @@ int main(int argc, char* argv[])
 		else 
 		{
 			//TODO: use mmap to write user_analitics.log and say which color choosed in what order...
+			//char lastColor = 'X';
+			while(1) 
+			{
+				FILE * afptr;
+				afptr = fopen("../logs/userAnalytics.txt","w");
+				if(afptr != NULL)
+				{
+					printf("Error writing to ../logs/userAnalytics.txt");
+					exit(1);
+				}
+				//fprintf(afptr, "Color Counts!\nBlue:%d\nWhite:%d\nRed:%d\nGreen:%d\n", smemory[0], smemory[1], smemory[2], smemory[3]);
+				int b = smemory[0];
+				int w = smemory[1];
+				int r = smemory[2];
+				int g = smemory[3];
+				fprintf(afptr, "Color Counts!\nBlue:%d\nWhite:%d\nRed:%d\nGreen:%d\n", b, w, r, g);
+				fclose(afptr);
+				sleep(3000);
+			}
+			
 		} // FINISH OF SECOND CHILD STATISTICS PROCESS
 	} 
 	else
@@ -324,28 +350,32 @@ int main(int argc, char* argv[])
 					if(m->color != COLOR_BLUE)
 					{
 						m->color = COLOR_BLUE;
-						//TODO: add mmap
+						//smemory[0] = 'B';
+						smemory[0]++;
 					}
 				} 
 				else if (xMouse < 64 && yMouse < 32) {
 					if(m->color != COLOR_WHITE) 
 					{
 						m->color = COLOR_WHITE;
-						//TODO: add mmap
+						//smemory[0] = 'W';
+						smemory[1]++;
 					}
 				} 
 				else if (xMouse < 96 && yMouse < 32) {
 					if(m->color != COLOR_RED)
 					{
 						m->color = COLOR_RED;
-						//TODO: add mmap
+						//smemory[0] = 'R';
+						smemory[2]++;
 					}
 				} 
 				else if (xMouse < 128 && yMouse < 32) {
 					if(m->color != COLOR_GREEN) 
 					{
 						m->color = COLOR_GREEN;
-						//TODO: add mmap
+						//smemory[0] = 'G';
+						smemory[3]++;
 					}
 				} 
 				else {
