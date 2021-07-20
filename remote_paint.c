@@ -218,7 +218,7 @@ int main(int argc, char* argv[])
 					//Move The Cursor On Screen
 					char * command = (char *) malloc(1024 * sizeof(char));
 					sprintf(command, "xdotool mousemove_relative -- %d %d", moveX, moveY);
-					printf("%s\n", command);
+					//printf("%s\n", command);
 					int sys = system(command);
 				}
 			
@@ -233,25 +233,23 @@ int main(int argc, char* argv[])
 		} // FINISH OF PARENT MOVE CURSOR PROCESS
 		else 
 		{
-			//TODO: use mmap to write user_analitics.log and say which color choosed in what order...
-			//char lastColor = 'X';
+			FILE * afptr;
 			while(1) 
 			{
-				FILE * afptr;
 				afptr = fopen("../logs/userAnalytics.txt","w");
-				if(afptr != NULL)
+
+				if(afptr == NULL)
 				{
-					printf("Error writing to ../logs/userAnalytics.txt");
+					printf("Error writing to ../logs/userAnalytics.txt\n");
 					exit(1);
 				}
-				//fprintf(afptr, "Color Counts!\nBlue:%d\nWhite:%d\nRed:%d\nGreen:%d\n", smemory[0], smemory[1], smemory[2], smemory[3]);
 				int b = smemory[0];
 				int w = smemory[1];
 				int r = smemory[2];
 				int g = smemory[3];
 				fprintf(afptr, "Color Counts!\nBlue:%d\nWhite:%d\nRed:%d\nGreen:%d\n", b, w, r, g);
 				fclose(afptr);
-				sleep(3000);
+				sleep(3); // Wait for 3 seconds
 			}
 			
 		} // FINISH OF SECOND CHILD STATISTICS PROCESS
@@ -350,32 +348,32 @@ int main(int argc, char* argv[])
 					if(m->color != COLOR_BLUE)
 					{
 						m->color = COLOR_BLUE;
-						//smemory[0] = 'B';
 						smemory[0]++;
+						printf("Color blue up: %d\n", smemory[0]);
 					}
 				} 
 				else if (xMouse < 64 && yMouse < 32) {
 					if(m->color != COLOR_WHITE) 
 					{
 						m->color = COLOR_WHITE;
-						//smemory[0] = 'W';
 						smemory[1]++;
+						printf("Color white up: %d\n", smemory[1]);
 					}
 				} 
 				else if (xMouse < 96 && yMouse < 32) {
 					if(m->color != COLOR_RED)
 					{
 						m->color = COLOR_RED;
-						//smemory[0] = 'R';
 						smemory[2]++;
+						printf("Color red up: %d\n", smemory[2]);
 					}
 				} 
 				else if (xMouse < 128 && yMouse < 32) {
 					if(m->color != COLOR_GREEN) 
 					{
 						m->color = COLOR_GREEN;
-						//smemory[0] = 'G';
 						smemory[3]++;
+						printf("Color green up: %d\n", smemory[3]);
 					}
 				} 
 				else {
